@@ -1,20 +1,29 @@
-iWallPeek 0.1.0 — teste no macOS 13 ou superior
+iWallPeek 0.2.0 — teste no macOS 13 ou superior
 
-1. Abra o DMG e arraste iWallPeek para Aplicativos.
-2. Abra o app. Esta versão de teste tem assinatura ad-hoc, sem notarização Apple.
-   Se o macOS bloquear, use Ajustes do Sistema > Privacidade e Segurança > Abrir Mesmo Assim.
-   Não é necessário desativar o Gatekeeper nem remover atributos via Terminal.
-3. No ícone de foto da barra de menus, selecione Bing e depois Atualizar agora.
-4. Confira a imagem no desktop. Troque para Windows Spotlight e repita.
-5. Para todos os Spaces, autorize Automação para System Events quando solicitado.
-6. Bloqueie o Mac (Control + Command + Q) e confira o fundo. A tela de bloqueio
-   depende do macOS e não é configurada separadamente pelo app; a tela inicial
-   de login após reiniciar não é prometida como parte desse recurso.
-7. Marque Iniciar com o macOS e confira em Ajustes > Geral > Itens de Início.
-8. Escolha retenção de 7, 30 ou 90 dias. O teto adicional é 500 MB; a imagem atual é preservada.
-9. Sem internet, o app informa erro no menu e mantém o papel de parede anterior.
+1. Encerre a versão anterior, abra o DMG e substitua iWallPeek em Aplicativos.
+2. Se o macOS bloquear a abertura, rode no Terminal deste Mac:
+   xattr -dr com.apple.quarantine "/Applications/iWallPeek.app"
+   open "/Applications/iWallPeek.app"
+   A versão é assinada ad-hoc, sem notarização Apple.
+3. A janela abre na primeira execução. Depois, use Abrir iWallPeek no menu.
+4. Em Plano de fundo, escolha Bing e atualize; repita com Windows Spotlight.
+5. Em Bing, alterne Brasil/Estados Unidos. Confira a prévia e o histórico recente.
+   Navegue por anterior/próxima: o fundo deve continuar igual até clicar em aplicar.
+6. Em cada serviço, escolha uma pasta diferente e habilite Autossalvar.
+   Atualize e confira os arquivos nas duas pastas. Desabilite e confirme que novas
+   exportações param. O cache interno continua sendo necessário ao aplicativo.
+7. Salve uma imagem do histórico manualmente e aplique outra como plano de fundo.
+8. Habilite Todas as mesas e aplique. Percorra suas quatro mesas e os monitores.
+   Confira também a mensagem de resultado na janela. No modo alternativo, cada
+   mesa recebe a imagem quando você entra nela. A configuração global usa formato
+   privado do macOS, com backup prévio; esta é a principal homologação desta versão.
+9. Bloqueie o Mac com Control + Command + Q e confira o fundo. O app não configura
+   uma fonte independente para bloqueio nem promete o fundo de login após reiniciar.
+10. Em Geral, teste início no login e retenção. Os arquivos exportados não são apagados.
+11. Sem internet, confira a mensagem de erro e a preservação da imagem anterior.
 
-O app consulta os serviços Microsoft e envia idioma/região. Não tem conta nem
-telemetria própria. Imagens ficam em ~/Library/Application Support/iWallPeek/Wallpapers.
-A desinstalação é feita encerrando o app, desmarcando início no login e removendo
-somente iWallPeek.app. As imagens podem ser removidas depois, pela pasta do app.
+O histórico Bing vem do serviço (até oito imagens recentes); Spotlight mantém
+histórico local adquirido. O app consulta a Microsoft e envia idioma/região.
+Cache: ~/Library/Application Support/iWallPeek/Wallpapers.
+Backups de mesas: ~/Library/Application Support/iWallPeek/WallpaperBackups.
+Para desinstalar, desmarque início no login, encerre e remova iWallPeek.app.

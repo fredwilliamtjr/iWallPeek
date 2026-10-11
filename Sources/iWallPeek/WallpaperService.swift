@@ -1,25 +1,48 @@
 import AppKit
 import Foundation
 import ImageIO
+import CryptoKit
 
-enum Source: String, CaseIterable {
+enum Source: String, CaseIterable, Codable {
     case bing, spotlight
     var title: String { self == .bing ? "Bing" : "Windows Spotlight" }
 }
-struct DailyImage { let url: URL; let title: String }
+struct DailyImage: Codable, Identifiable, Equatable {
+    let url: URL
+    let title: String
+    let date: String
+    let source: Source
+    let market: String
+    var id: String { SHA256.hash(data: Data((source.rawValue + market + url.absoluteString).utf8)).map { String(format: "%02x", $0) }.joined() }
+}
 
 final class WallpaperService {
     private let http = SafeHTTP()
-    func fetch(_ source: Source) async throws -> DailyImage {
-        let language = Locale.current.language.languageCode?.identifier ?? "pt"
-        let country = Locale.current.region?.identifier ?? "BR"
-        let locale = language + "-" + country
+    static let markets: [(String, String)] = [
+        ("auto", "Região atual do Mac"), ("pt-BR", "Brasil"), ("en-US", "Estados Unidos"),
+        ("en-GB", "Reino Unido"), ("en-CA", "Canadá (inglês)"), ("fr-CA", "Canadá (francês)"),
+        ("de-DE", "Alemanha"), ("fr-FR", "França"), ("it-IT", "Itália"), ("es-ES", "Espanha"),
+        ("ja-JP", "Japão"), ("zh-CN", "China"), ("en-IN", "Índia"), ("en-AU", "Austrália")
+    ]
+    static func market(_ selection: String) -> String {
+        guard selection != "auto", markets.contains(where: { $0.0 == selection }) else {
+            return (Locale.current.language.languageCode?.identifier ?? "pt") + "-" + (Locale.current.region?.identifier ?? "BR")
+        }
+        return selection
+    }
+    func fetch(_ source: Source, region: String = "auto") async throws -> DailyImage {
+        guard let image = try await catalog(source, region: region, history: false).first else { throw WallError.invalid("Nenhuma imagem disponível.") }
+        return image
+    }
+    func catalog(_ source: Source, region: String, history: Bool) async throws -> [DailyImage] {
+        let locale = Self.market(source == .bing ? region : "auto")
         var components = URLComponents(string: source == .bing
             ? "https://www.bing.com/HPImageArchive.aspx" : "https://arc.msn.com/v3/Delivery/Placement")!
         if source == .bing {
             components.queryItems = [URLQueryItem(name: "format", value: "js"), URLQueryItem(name: "idx", value: "0"),
-                URLQueryItem(name: "n", value: "1"), URLQueryItem(name: "mkt", value: locale)]
+                URLQueryItem(name: "n", value: history ? "8" : "1"), URLQueryItem(name: "mkt", value: locale)]
         } else {
+            let country = Locale.current.region?.identifier ?? "BR"
             let values = ["pid":"338387", "fmt":"json", "rafb":"0", "ua":"WindowsShellClient/0", "cdm":"1",
                 "disphorzres":"9999", "dispvertres":"9999", "lo":"80217", "pl":locale, "lc":locale,
                 "ctry":country, "time":ISO8601DateFormatter().string(from: Date())]
@@ -28,24 +51,36 @@ final class WallpaperService {
         guard let endpoint = components.url else { throw WallError.invalid("Endereço inválido.") }
         let data = try await http.get(endpoint, limit: 2 * 1024 * 1024)
         if source == .bing {
-            struct Feed: Decodable { struct Item: Decodable { let urlbase: String; let title: String? }; let images: [Item] }
-            guard let image = try JSONDecoder().decode(Feed.self, from: data).images.first,
-                  image.urlbase.hasPrefix("/th?"),
-                  let url = URL(string: "https://www.bing.com" + image.urlbase + "_UHD.jpg")
-            else { throw WallError.invalid("Bing não retornou uma imagem válida.") }
-            try Safety.validateURL(url)
-            return DailyImage(url: url, title: image.title ?? "Imagem do dia do Bing")
+            struct Feed: Decodable {
+                struct Item: Decodable { let urlbase: String; let title: String?; let copyright: String?; let startdate: String }
+                let images: [Item]
+            }
+            let feed = try JSONDecoder().decode(Feed.self, from: data)
+            // Invalid items do not hide the remaining valid history.
+            let images = feed.images.compactMap { image -> DailyImage? in
+                guard image.urlbase.hasPrefix("/th?"), let url = URL(string: "https://www.bing.com" + image.urlbase + "_UHD.jpg"),
+                      (try? Safety.validateURL(url)) != nil else { return nil }
+                let title = [image.title, image.copyright].compactMap { $0 }.joined(separator: " — ")
+                return DailyImage(url: url, title: title.isEmpty ? "Imagem do Bing" : title, date: image.startdate, source: .bing, market: locale)
+            }
+            guard !images.isEmpty else { throw WallError.invalid("Bing não retornou imagens válidas.") }
+            return images
         }
         struct Feed: Decodable { struct Batch: Decodable { struct Item: Decodable { let item: String }; let items: [Item] }; let batchrsp: Batch }
         struct Ad: Decodable { struct Asset: Decodable { let t: String; let u: String?; let tx: String? }; let ad: [String: Asset] }
-        guard let first = try JSONDecoder().decode(Feed.self, from: data).batchrsp.items.first,
-              let nested = first.item.data(using: .utf8) else { throw WallError.invalid("Spotlight sem conteúdo.") }
-        let ad = try JSONDecoder().decode(Ad.self, from: nested)
-        guard let asset = ad.ad["image_fullscreen_001_landscape"], asset.t == "img",
-              let address = asset.u, let url = URL(string: address) else { throw WallError.invalid("Spotlight sem imagem horizontal.") }
-        try Safety.validateURL(url)
-        return DailyImage(url: url, title: ad.ad["hs1_title_text"]?.tx ?? "Imagem do Windows Spotlight")
+        let feed = try JSONDecoder().decode(Feed.self, from: data)
+        var images: [DailyImage] = []
+        for item in feed.batchrsp.items {
+            guard let nested = item.item.data(using: .utf8), let ad = try? JSONDecoder().decode(Ad.self, from: nested),
+                  let asset = ad.ad["image_fullscreen_001_landscape"], asset.t == "img", let address = asset.u,
+                  let url = URL(string: address), (try? Safety.validateURL(url)) != nil else { continue }
+            images.append(DailyImage(url: url, title: ad.ad["hs1_title_text"]?.tx ?? "Imagem do Windows Spotlight",
+                date: Self.day(), source: .spotlight, market: locale))
+        }
+        guard !images.isEmpty else { throw WallError.invalid("Spotlight não retornou imagens válidas.") }
+        return images
     }
+    static func day() -> String { let f = DateFormatter(); f.locale = Locale(identifier: "en_US_POSIX"); f.dateFormat = "yyyyMMdd"; return f.string(from: Date()) }
     func download(_ image: DailyImage) async throws -> Data {
         let data = try await http.get(image.url, limit: Safety.maxImageBytes)
         try Safety.validateImage(data)
@@ -76,7 +111,7 @@ final class ImageStore {
         try data.write(to: url, options: .withoutOverwriting)
         return url
     }
-    func prune(keeping current: URL, days: Int) throws {
+    func prune(keeping current: URL, days: Int, additionally: [URL] = []) throws {
         try checkDirectory()
         let fm = FileManager.default
         let files = try fm.contentsOfDirectory(at: root, includingPropertiesForKeys: [.isRegularFileKey, .isSymbolicLinkKey, .contentModificationDateKey, .fileSizeKey])
@@ -88,48 +123,10 @@ final class ImageStore {
             entries.append((file, v.contentModificationDate ?? .distantPast, v.fileSize ?? 0))
         }
         var total = entries.reduce(0) { $0 + $1.2 }
-        for (file, date, size) in entries.sorted(by: { $0.1 < $1.1 }) where file != current {
+        for (file, date, size) in entries.sorted(by: { $0.1 < $1.1 }) where file != current && !additionally.contains(file) {
             if date < cutoff || total > 500 * 1024 * 1024 {
                 try fm.removeItem(at: file); total -= size
             }
         }
     }
-}
-
-@MainActor
-func applyWallpaper(_ url: URL, allSpaces: Bool) async throws -> String? {
-    guard !NSScreen.screens.isEmpty else { throw WallError.invalid("Nenhum monitor disponível.") }
-    var failures = 0
-    for screen in NSScreen.screens {
-        do { try NSWorkspace.shared.setDesktopImageURL(url, for: screen, options: [:]) }
-        catch { failures += 1 }
-    }
-    guard failures < NSScreen.screens.count else { throw WallError.invalid("Não foi possível aplicar a imagem nos monitores.") }
-    let partialWarning: String? = failures > 0 ? "A imagem não pôde ser aplicada em alguns monitores." : nil
-    guard allSpaces else { return partialWarning }
-    // Static program; untrusted/user paths travel as argv, never as source or shell commands.
-    let script = """
-    on run argv
-        tell application "System Events"
-            repeat with aDesktop in every desktop
-                set picture of aDesktop to item 1 of argv
-            end repeat
-        end tell
-    end run
-    """
-    let status = try await Task.detached {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
-        process.arguments = ["-e", script, url.path]
-        let errors = Pipe()
-        process.standardError = errors
-        process.standardOutput = FileHandle.nullDevice
-        try process.run()
-        process.waitUntilExit()
-        return process.terminationStatus
-    }.value
-    if status != 0 {
-        return "Imagem aplicada nos monitores; não foi possível aplicar em todos os Spaces. Verifique a permissão de Automação."
-    }
-    return partialWarning
 }

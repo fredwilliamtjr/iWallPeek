@@ -1,50 +1,42 @@
-# Validação — iWallPeek 0.1.0 — 11/10/2026
-
-## Resultado
-
-Build release arm64 concluído. App e DMG gerados em dist/ para Apple Silicon,
-macOS 13 ou superior. Assinatura ad-hoc com entitlement de Apple Events;
-sem certificado Developer ID ou notarização Apple.
+# Validação — iWallPeek 0.2.0 — 11/10/2026
 
 ## Verificações executadas
 
-- `IWALLPEEK_LIVE_TEST=1 ./scripts/verify.sh`: passou.
-- Rejeição de HTTP, arquivo local, domínio impostor, credenciais e porta não permitida.
-- Redirecionamento externo rejeitado; redirecionamento autorizado aceito pelo delegate.
-- Conteúdo não-imagem e payload acima de 25 MiB rejeitados.
-- Armazenamento com symlink rejeitado; retenção remove antigos e preserva atual/arquivos alheios.
-- Teto de 500 MiB validado com arquivos esparsos; preservação da imagem atual.
-- Bing: download real de 3.551.609 bytes em www.bing.com, decodificado como imagem válida.
-- Spotlight: download real de 1.632.173 bytes em res.public.onecdn.static.microsoft, decodificado como imagem válida.
-- `./build.sh arm64`: build release, codesign e hdiutil verify passaram.
-- DMG montado somente leitura: assinatura do app validada; todos os arquivos
-  comparados por SHA-256 com o app externo e encontrados idênticos; atalho Aplicativos presente.
-- Checksum SHA-256 do DMG verificado.
-- `bash -n`, `plutil -lint` e `git diff --check`: passaram.
+- Build release arm64 e empacotamento DMG concluídos.
+- Assinatura ad-hoc conferida com codesign; hdiutil verify e checksum SHA-256 passaram.
+- DMG montado somente leitura: todos os arquivos do aplicativo comparados com o
+  build e encontrados idênticos; atalho para Aplicativos presente.
+- Verificador Swift compilado contra os mesmos fontes de produção: passou.
+- Rejeição de HTTP, domínio impostor, credenciais, portas e redirecionamentos externos.
+- Validação de imagens, tamanho máximo, retenção, teto de cache e proteção contra symlinks.
+- Exportação idempotente sem sobrescrever conteúdo diferente nem seguir link no destino.
+- Preferências de autossalvamento/pastas separadas para Bing e Spotlight.
+- Transformação do arquivo de wallpaper testada com quatro mesas fictícias,
+  preservando mesas, monitores, protetor de tela e campos alheios. Formato desconhecido rejeitado.
+- Testes reais de rede: oito imagens Bing pt-BR e oito en-US; downloads válidos
+  de Bing (3.551.609 bytes) e Spotlight (1.198.264 bytes).
+- Sintaxe dos scripts e plists verificada. git diff --check sem erros.
 
-O teste de armazenamento encontrou e permitiu corrigir uma combinação incompatível
-entre `.atomic` e `.withoutOverwriting` do Foundation antes da entrega final.
-XCTest não estava disponível nas Command Line Tools; o verificador é um executável
-Swift independente, compilado contra os mesmos arquivos de produção.
+## Limitações e homologação
 
-## Referência adicional consultada
+NÃO VERIFIQUEI — aplicativo instalado/em execução com interface, alteração real
+nas quatro mesas do MacBook, bookmarks de pastas escolhidas pela interface ou
+registro no login. O roteiro está em TESTAR.md.
+A tentativa de renderização fora da tela não permitiu avaliar o visual completo;
+a revisão visual fica incluída na homologação manual.
 
-DailyFrame, commit 95dbc3e8ed1315509d5a30ae285857b8a1f29ed8:
-LoginItem.swift:15 usa SMAppService; WallpaperManager.swift:35 usa NSWorkspace;
-AppState.swift:125 faz checagem periódica. Usado como comparação de arquitetura,
-sem incorporar arquivos ou ampliar o escopo para Unsplash/histórico.
-https://github.com/amalik99/DailyFrame/tree/95dbc3e8ed1315509d5a30ae285857b8a1f29ed8
+O método global das mesas usa formato privado do macOS 14+, com validação de
+estrutura e backup antes de gravar. Os testes de transformação não provam que
+cada versão do WallpaperAgent aplicará a imagem em todas as mesas. Se a operação
+falhar, o aplicativo usa reaplicação ao entrar em outra mesa. Essa alternativa
+também é usada no macOS 13. A janela informa o modo utilizado.
 
-## Homologação pendente
+A tela de bloqueio acompanha o papel de parede conforme o macOS; não há escolha
+independente de fonte nem modificação do login após reiniciar.
+Assinatura ad-hoc, sem Developer ID ou notarização Apple.
 
-NÃO VERIFIQUEI — app instalado/em execução com interface, alteração do desktop,
-Automação de System Events em todos os Spaces, registro no login ou fundo da tela
-bloqueada. Essas verificações manuais ficam com Fred conforme TESTAR.md.
-Não há implementação separada de fundo da tela de bloqueio ou login após reiniciar.
+## Git e artefatos
 
-## Git
-
-Trabalho isolado em codex/feature/iwallpeek, no worktree .codex/worktrees/iwallpeek.
-O checkout principal mantém a base original DailyWalls.
-Não há remoto de publicação do iWallPeek configurado; upstream é somente a origem
-DailyWalls e não é destino para publicar este projeto.
+Trabalho em codex/feature/iwallpeek, no worktree .codex/worktrees/iwallpeek.
+Publicação destinada a fredwilliamtjr/iWallPeek. Nenhuma alteração no checkout principal.
+Saída: dist/iWallPeek.app, dist/iWallPeek-0.2.0-arm64.dmg e checksum correspondente.
