@@ -1,5 +1,5 @@
-.DS_Store
 .build/
-DailyWalls.app/
-.antigravitycli/
-DerivedData/
+dist/
+.DS_Store
+.idea/
+.codex/
