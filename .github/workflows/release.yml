@@ -1,0 +1,121 @@
+name: Build and release
+
+# Branches claude/**: testa e compila as três plataformas, guardando os pacotes
+# como artefatos do workflow. Tags v*: além disso, publica uma pre-release com
+# todos os pacotes (notas da release = mensagem da tag anotada).
+on:
+  push:
+    branches: ['claude/**']
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  mac:
+    runs-on: macos-latest
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Unit tests (inclui a transformação das mesas via JXA)
+        run: npm test
+      - name: Build macOS universal DMG
+        run: npx electron-builder --mac dmg --universal --publish never
+      - name: Verify universal binary
+        run: lipo -archs "release/mac-universal/iWallPeek.app/Contents/MacOS/iWallPeek"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mac
+          path: |
+            release/*.dmg
+            release/*.dmg.blockmap
+          if-no-files-found: error
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Apply a wallpaper for real (SystemParametersInfo)
+        run: node test/windows-smoke.js
+      - name: Build Windows x64 installer and portable app
+        run: npx electron-builder --win --x64 --publish never
+      - name: Verify packaged version
+        shell: pwsh
+        run: |
+          $expected = (Get-Content package.json -Raw | ConvertFrom-Json).version + '.0'
+          $actual = (Get-Item 'release/win-unpacked/iWallPeek.exe').VersionInfo.ProductVersion
+          if ($actual -ne $expected) { throw "Unexpected version: $actual" }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: |
+            release/*.exe
+            release/*.exe.blockmap
+            release/latest.yml
+          if-no-files-found: error
+
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Build Linux AppImage and deb (x64 + arm64)
+        run: npx electron-builder --linux AppImage deb --x64 --arm64 --publish never
+      - name: Inspect deb packages
+        run: |
+          for deb in release/*.deb; do
+            dpkg-deb --info "$deb"
+            dpkg-deb --contents "$deb" | grep -E 'usr/share/applications/.*\.desktop$'
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: |
+            release/*.AppImage
+            release/*.deb
+            release/latest-linux*.yml
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [mac, windows, linux]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Fetch annotated tag
+        run: git fetch --force origin "refs/tags/${GITHUB_REF_NAME}:refs/tags/${GITHUB_REF_NAME}"
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Create pre-release with all packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ls -la dist
+          ( cd dist && sha256sum * > SHA256SUMS.txt )
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "iWallPeek ${GITHUB_REF_NAME#v} — macOS, Windows e Linux" \
+            --notes-from-tag \
+            --prerelease \
+            --verify-tag

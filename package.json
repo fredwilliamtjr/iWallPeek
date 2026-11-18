@@ -1,0 +1,103 @@
+{
+  "name": "iwallpeek",
+  "version": "0.3.0",
+  "description": "Imagens diárias do Bing e do Windows Spotlight como plano de fundo no macOS, Windows e Linux.",
+  "main": "src/main.js",
+  "author": "Fred William",
+  "license": "MIT",
+  "private": true,
+  "homepage": "https://github.com/fredwilliamtjr/iWallPeek",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "test": "node --test test/*.test.js",
+    "test:live": "IWALLPEEK_LIVE_TEST=1 node --test test/*.test.js",
+    "build": "electron-builder",
+    "build:mac:dir": "electron-builder --mac dir",
+    "build:mac:universal": "electron-builder --mac dmg --universal",
+    "build:win": "electron-builder --win",
+    "build:linux": "electron-builder --linux"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "33.4.11",
+    "electron-builder": "25.1.8"
+  },
+  "build": {
+    "appId": "com.smartfull.iWallPeek",
+    "productName": "iWallPeek",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "src/**/*",
+      "package.json",
+      "LICENSE",
+      "NOTICE.md",
+      "THIRD_PARTY_LICENSES/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.lifestyle",
+      "icon": "build/icon.icns",
+      "extendInfo": {
+        "LSUIElement": true
+      },
+      "target": [
+        "dmg"
+      ]
+    },
+    "dmg": {
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    },
+    "win": {
+      "icon": "build/icon.png",
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "linux": {
+      "icon": "build/icon.png",
+      "category": "Graphics",
+      "synopsis": "Imagens diárias do Bing e do Windows Spotlight como plano de fundo",
+      "maintainer": "Fred William",
+      "executableName": "iwallpeek",
+      "artifactName": "${productName}-${version}-${arch}.${ext}",
+      "target": [
+        "AppImage",
+        "deb"
+      ]
+    },
+    "deb": {
+      "depends": [
+        "libgtk-3-0 | libgtk-3-0t64",
+        "libnotify4",
+        "libnss3",
+        "libxss1",
+        "libxtst6",
+        "xdg-utils",
+        "libatspi2.0-0 | libatspi2.0-0t64",
+        "libuuid1",
+        "libsecret-1-0",
+        "libasound2 | libasound2t64",
+        "libgbm1"
+      ]
+    }
+  }
+}

@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' data:; style-src 'self'; script-src 'self'">
+  <title>iWallPeek</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand"><img src="../assets/icon.png" alt=""><span>iWallPeek</span></div>
+      <nav id="nav" aria-label="Seções">
+        <button type="button" data-panel="wallpaper">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M9 20h6M12 16v4"/></svg>
+          <span>Plano de fundo</span>
+        </button>
+        <button type="button" data-panel="lockScreen">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><rect x="9.5" y="9" width="5" height="4" rx="1"/><path d="M10.5 9V7.8a1.5 1.5 0 0 1 3 0V9M9 20h6"/></svg>
+          <span>Tela de bloqueio</span>
+        </button>
+        <button type="button" data-panel="bing">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3Z"/></svg>
+          <span>Imagem diária do Bing</span>
+        </button>
+        <button type="button" data-panel="spotlight">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8Z"/><path d="M18.5 15.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7Z"/></svg>
+          <span>Windows Spotlight</span>
+        </button>
+        <button type="button" data-panel="general">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/></svg>
+          <span>Configurações</span>
+        </button>
+      </nav>
+      <div class="version" id="version"></div>
+    </aside>
+
+    <main class="detail">
+      <header class="detail-header">
+        <h1 id="panel-title">Plano de fundo</h1>
+        <div class="spinner" id="spinner" hidden></div>
+      </header>
+
+      <div class="content">
+        <!-- Plano de fundo -->
+        <section data-section="wallpaper">
+          <div class="photo" data-photo="current"></div>
+          <h3 class="selectable" id="current-title"></h3>
+          <p class="muted" id="current-source"></p>
+          <div class="group" data-busy-disable>
+            <div class="row">
+              <label for="source">Serviço do plano de fundo</label>
+              <select id="source">
+                <option value="bing">Bing</option>
+                <option value="spotlight">Windows Spotlight</option>
+              </select>
+              <span class="spacer"></span>
+              <button type="button" class="primary" id="refresh">Atualizar e aplicar</button>
+            </div>
+            <hr>
+            <label class="toggle" id="all-spaces-row">
+              <input type="checkbox" id="all-spaces">
+              <span>Aplicar em todas as mesas e monitores</span>
+            </label>
+            <div class="row">
+              <p class="caption" id="space-status"></p>
+              <span class="spacer"></span>
+              <button type="button" id="reapply">Reaplicar nas mesas</button>
+            </div>
+          </div>
+          <div><button type="button" id="view-history" data-busy-disable></button></div>
+        </section>
+
+        <!-- Tela de bloqueio -->
+        <section data-section="lockScreen" hidden>
+          <div class="photo" data-photo="current"></div>
+          <div class="group">
+            <h3 class="with-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>
+              <span id="lock-heading"></span>
+            </h3>
+            <p id="lock-text"></p>
+            <p class="caption" id="lock-caption"></p>
+            <div><button type="button" id="goto-wallpaper">Configurar plano de fundo</button></div>
+          </div>
+        </section>
+
+        <!-- Bing / Spotlight -->
+        <section data-section="service" hidden>
+          <div class="group" id="region-group" data-busy-disable>
+            <div class="row">
+              <label for="region">Região das imagens do Bing</label>
+              <select id="region"></select>
+            </div>
+          </div>
+          <div class="photo" data-photo="preview"></div>
+          <h3 class="selectable" id="selected-title"></h3>
+          <div class="row" data-busy-disable>
+            <button type="button" id="prev">‹ Anterior</button>
+            <button type="button" id="next">Próxima ›</button>
+            <span class="spacer"></span>
+            <button type="button" id="save">Salvar imagem…</button>
+            <button type="button" class="primary" id="apply">Usar como plano de fundo</button>
+          </div>
+          <div class="group" data-busy-disable>
+            <label class="toggle">
+              <input type="checkbox" id="auto">
+              <span id="auto-label"></span>
+            </label>
+            <div class="row">
+              <svg class="folder-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>
+              <span class="caption selectable folder-path" id="folder"></span>
+              <span class="spacer"></span>
+              <button type="button" id="choose-folder">Escolher pasta…</button>
+              <button type="button" id="open-folder">Abrir</button>
+            </div>
+            <p class="caption">As cópias nesta pasta são permanentes. A limpeza do cache interno não remove suas fotos salvas.</p>
+            <div><button type="button" id="export-now">Buscar e autossalvar agora</button></div>
+          </div>
+          <div class="group" data-busy-disable>
+            <div class="group-title">Histórico</div>
+            <div class="row">
+              <p class="caption" id="history-caption"></p>
+              <span class="spacer"></span>
+              <button type="button" id="reload-history">Atualizar histórico</button>
+            </div>
+            <ul class="history" id="history"></ul>
+          </div>
+        </section>
+
+        <!-- Configurações -->
+        <section data-section="general" hidden>
+          <div class="group" data-busy-disable>
+            <label class="toggle">
+              <input type="checkbox" id="login">
+              <span id="login-label">Iniciar com o sistema</span>
+            </label>
+            <div class="row">
+              <label for="retention">Manter cache e histórico local por</label>
+              <select id="retention">
+                <option value="7">7 dias</option>
+                <option value="30">30 dias</option>
+                <option value="90">90 dias</option>
+              </select>
+            </div>
+            <p class="caption">Cache interno limitado a 500 MB. A imagem em uso é preservada. As pastas de autossalvamento não são limpas pelo aplicativo.</p>
+          </div>
+          <div class="group">
+            <div class="group-title">Sobre</div>
+            <h3 id="about-version">iWallPeek</h3>
+            <p>Baseado no DailyWalls (Xiaohan Tian, MIT). Integração de mesas do macOS baseada no wallall (treschar, MIT).</p>
+            <p class="caption">Sem conta ou telemetria própria. Idioma/região são enviados aos serviços Microsoft. Os direitos das fotografias pertencem aos respectivos titulares.</p>
+          </div>
+        </section>
+      </div>
+
+      <footer class="status selectable" id="status">Pronto</footer>
+    </main>
+  </div>
+  <script src="renderer.js"></script>
+</body>
+</html>

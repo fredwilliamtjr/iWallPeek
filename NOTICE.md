@@ -5,7 +5,10 @@ Origem: https://github.com/Xiaohan-Tian/DailyWalls
 Base: c47b6b03291e768fa2dcf9a8a1e37af546976b8f (MIT).
 O texto original da licença e o copyright estão em LICENSE e são distribuídos no app.
 A implementação foi adaptada para validação de rede/imagens, armazenamento seguro,
-menu em português, início no login e retenção. Ícone próprio gerado em scripts/icon.swift.
+menu em português, início no login e retenção. Ícone próprio gerado em scripts/icon.swift
+(ícone da barra de menus em scripts/tray-icon.swift).
+A partir da 0.3.0 o aplicativo foi reescrito em Electron (JavaScript) para rodar no
+macOS, no Windows e no Linux, mantendo a mesma lógica e as mesmas regras de segurança.
 A licença do software não concede direitos sobre as fotografias: os direitos das
 imagens do Bing/Spotlight permanecem com seus respectivos titulares.
 
