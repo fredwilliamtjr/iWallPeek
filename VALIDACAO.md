@@ -1,3 +1,53 @@
+# Validação — iWallPeek 0.3.0 (Electron) — 18/11/2026
+
+Reescrita em Electron 33 (mesma base do IRustPeek) para macOS, Windows e Linux.
+
+## Verificações executadas
+
+- `npm test` (node:test, porta do verify.swift + modelo + Linux) no macOS, Windows e
+  Ubuntu do GitHub Actions: 13/12/12 aprovados (o teste JXA só roda no macOS).
+- Rede: rejeição de HTTP, domínio impostor, credenciais, portas, IP e redirecionamento
+  externo (recusado antes de conectar); limites de bytes declarados e reais.
+- Imagens: não-imagem, excesso de bytes, APNG, dimensões/pixels acima do limite e
+  divergência com o decodificador real; cache, teto de 500 MB, symlink; exportação
+  idempotente sem sobrescrever nem seguir link.
+- macOS: transformação do Index.plist via JXA com quatro mesas fictícias, preservando
+  mesas, monitores, protetor de tela e campos alheios; formato desconhecido rejeitado;
+  AllSpacesAndDisplays "$null" aceito.
+- Feeds reais (`npm run test:live`): 8 imagens Bing pt-BR e 8 en-US; Bing 3840x2160
+  (3.718.872 bytes) e Spotlight 1920x1080 (1.350.439 bytes).
+- Windows (runner GitHub): `SystemParametersInfo` aplicado de verdade num caminho com
+  espaço e acento; registro `Wallpaper` e `WallpaperStyle=10` conferidos; arquivo
+  inexistente recusado. Versão do .exe conferida.
+- Ubuntu 24.04 limpo (Docker, arm64 nativo e amd64 emulado): `apt install` do .deb,
+  app aberto sob Xvfb com `XDG_CURRENT_DESKTOP=ubuntu:GNOME`; `picture-uri` e
+  `picture-uri-dark` passaram de `adwaita-l.jpg` para a imagem do Bing baixada,
+  `picture-options=zoom`; ícone registrado como StatusNotifierItem e menu lido via
+  dbusmenu (Abrir, Atualizar, Sair); captura da janela conferida.
+- macOS (Mac Studio, macOS 27): app em desenvolvimento e o app empacotado do DMG
+  universal (x86_64 + arm64) rodaram em modo simulação (`IWALLPEEK_DRY_RUN=1`, dados
+  em pasta temporária): atualização diária, histórico Bing (8 itens), anterior,
+  aplicar, Spotlight e Configurações; capturas de todas as telas conferidas.
+
+## Achados corrigidos durante a validação
+
+- O .deb pedia `libasound2 | libasound2t64`; num Ubuntu 24.04 limpo o apt escolhia
+  `liboss4-salsa-asound2` e o app não abria. Agora `libasound2t64 | libasound2` e `libgbm1`.
+
+## Limitações e homologação
+
+NÃO VERIFIQUEI — aplicação real do fundo no macOS (NSWorkspace por monitor e gravação
+do Index.plist + reinício do WallpaperAgent): o Mac de teste tem fundo personalizado
+e não foi alterado. A lógica é a mesma da 0.2.1, agora via JXA; a transformação foi
+testada com fixtures. Também não verifiquei: KDE/XFCE/Cinnamon/MATE reais, janela do
+Windows com interação, início com o sistema após reiniciar. Roteiro em TESTAR.md.
+
+Sem evento de troca de mesa no Electron: no modo alternativo do macOS (sem configuração
+global) a imagem é reaplicada na mesa ativa a cada minuto, e não no instante da troca.
+As preferências da versão Swift (UserDefaults) não são migradas; o cache sim (mesma pasta).
+Assinatura ad-hoc só do executável (igual ao IRustPeek 0.1.6), sem notarização;
+Windows sem assinatura de código.
+
 # Validação — iWallPeek 0.2.1 — 18/11/2026
 
 Mesmo código da 0.2.0; muda só o empacotamento, agora universal (Intel + Apple Silicon).

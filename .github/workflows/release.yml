@@ -57,6 +57,24 @@ jobs:
           $expected = (Get-Content package.json -Raw | ConvertFrom-Json).version + '.0'
           $actual = (Get-Item 'release/win-unpacked/iWallPeek.exe').VersionInfo.ProductVersion
           if ($actual -ne $expected) { throw "Unexpected version: $actual" }
+      - name: Smoke test packaged app (dry run, real feeds)
+        shell: pwsh
+        run: |
+          $data = Join-Path $env:RUNNER_TEMP 'iwallpeek-data'
+          $env:IWALLPEEK_DRY_RUN = '1'
+          $env:IWALLPEEK_USER_DATA = $data
+          $app = Start-Process 'release/win-unpacked/iWallPeek.exe' -PassThru
+          $prefs = $null
+          for ($i = 0; $i -lt 60; $i++) {
+            Start-Sleep -Seconds 2
+            $file = Join-Path $data 'preferences.json'
+            if (Test-Path $file) { $prefs = Get-Content $file -Raw | ConvertFrom-Json; if ($prefs.currentPath) { break } }
+          }
+          if ($app.HasExited) { throw "App encerrou (código $($app.ExitCode))" }
+          if (-not $prefs.currentPath) { throw 'O app não baixou nem aplicou a imagem do dia' }
+          Write-Output "Imagem do dia: $($prefs.imageTitle)"
+          Write-Output "Cache: $($prefs.currentPath)"
+          Stop-Process -Id $app.Id -Force
       - uses: actions/upload-artifact@v4
         with:
           name: windows
