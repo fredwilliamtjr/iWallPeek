@@ -39,7 +39,7 @@ struct SettingsView: View {
                 List(selection: $panel) {
                     ForEach(Panel.allCases) { item in Label(item.title, systemImage: item.icon).tag(item) }
                 }.listStyle(.sidebar).disabled(model.busy)
-                Text("Versão 0.2.0").font(.caption).foregroundStyle(.secondary).padding(16)
+                Text("Versão 0.2.1").font(.caption).foregroundStyle(.secondary).padding(16)
             }.navigationSplitViewColumnWidth(min: 200, ideal: 225, max: 270)
         } detail: {
             VStack(alignment: .leading, spacing: 0) {
@@ -199,7 +199,7 @@ struct SettingsView: View {
             }
             GroupBox("Sobre") {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("iWallPeek 0.2.0").font(.headline)
+                    Text("iWallPeek 0.2.1").font(.headline)
                     Text("Baseado no DailyWalls (Xiaohan Tian, MIT). Integração de mesas baseada no wallall (treschar, MIT).")
                     Text("Sem conta ou telemetria própria. Idioma/região são enviados aos serviços Microsoft. Os direitos das fotografias pertencem aos respectivos titulares.").font(.caption).foregroundStyle(.secondary)
                 }.padding(10).frame(maxWidth: .infinity, alignment: .leading)

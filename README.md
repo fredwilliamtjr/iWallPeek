@@ -6,7 +6,8 @@ janela de configurações em português e acesso pela barra de menus.
 ## Instalar
 
 Baixe o DMG na [página de versões](https://github.com/fredwilliamtjr/iWallPeek/releases),
-abra e arraste **iWallPeek** para **Aplicativos**.
+abra e arraste **iWallPeek** para **Aplicativos**. A partir da 0.2.1 o DMG é
+universal: o mesmo arquivo roda em Macs Intel e com chip Apple.
 
 Esta versão tem assinatura ad-hoc e não é notarizada pela Apple. Se o macOS
 impedir a abertura, execute no Terminal **do Mac onde o aplicativo foi instalado**:
@@ -52,10 +53,13 @@ Requer Swift 5.10+ e Command Line Tools. Sem dependências externas.
 ```sh
 ./scripts/verify.sh
 IWALLPEEK_LIVE_TEST=1 ./scripts/verify.sh
-./build.sh arm64
-# Opcional para Macs Intel:
-./build.sh x86_64
+./build.sh universal   # Intel e Apple Silicon (usado nas releases)
+./build.sh arm64       # somente Apple Silicon
+./build.sh x86_64      # somente Intel
 ```
+
+O build universal compila as duas arquiteturas e as une com `lipo`; funciona
+tanto em Mac Intel quanto em Mac com chip Apple.
 
 Saída em `dist/`: aplicativo, DMG e checksum. Build não instala nem abre o app.
 

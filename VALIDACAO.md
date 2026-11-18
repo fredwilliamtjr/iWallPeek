@@ -1,3 +1,19 @@
+# Validação — iWallPeek 0.2.1 — 18/11/2026
+
+Mesmo código da 0.2.0; muda só o empacotamento, agora universal (Intel + Apple Silicon).
+
+- build.sh ganhou a opção `universal`: compila arm64 e x86_64 e une com lipo.
+  O nome do DMG passa a usar a versão do Info.plist.
+- Build feito num Mac Intel (x86_64, macOS 26.7.3, Swift 6.3.3, Command Line Tools).
+- lipo: binário com as fatias x86_64 e arm64; minos 13.0 nas duas.
+- codesign --verify --deep --strict, hdiutil verify e checksum SHA-256 passaram.
+- scripts/verify.sh: passou.
+
+NÃO VERIFIQUEI — execução do app em Mac Intel nem em Mac com chip Apple a partir
+deste DMG. Vale repetir o roteiro de TESTAR.md nos dois tipos de Mac.
+
+Saída: dist/iWallPeek.app, dist/iWallPeek-0.2.1-universal.dmg e checksum correspondente.
+
 # Validação — iWallPeek 0.2.0 — 11/10/2026
 
 ## Verificações executadas

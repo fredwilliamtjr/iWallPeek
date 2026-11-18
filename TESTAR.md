@@ -1,4 +1,4 @@
-iWallPeek 0.2.0 — teste no macOS 13 ou superior
+iWallPeek 0.2.1 — teste no macOS 13 ou superior
 
 1. Encerre a versão anterior, abra o DMG e substitua iWallPeek em Aplicativos.
 2. Se o macOS bloquear a abertura, rode no Terminal deste Mac:
