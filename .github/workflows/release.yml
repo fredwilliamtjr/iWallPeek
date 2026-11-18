@@ -131,9 +131,11 @@ jobs:
         run: |
           ls -la dist
           ( cd dist && sha256sum * > SHA256SUMS.txt )
+          git tag -l --format='%(contents)' "$GITHUB_REF_NAME" | sed '/-----BEGIN PGP/,$d' > release-notes.md
+          test -s release-notes.md
           gh release create "$GITHUB_REF_NAME" dist/* \
             --repo "$GITHUB_REPOSITORY" \
             --title "iWallPeek ${GITHUB_REF_NAME#v} — macOS, Windows e Linux" \
-            --notes-from-tag \
+            --notes-file release-notes.md \
             --prerelease \
             --verify-tag
