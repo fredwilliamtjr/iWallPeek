@@ -37,6 +37,49 @@ jobs:
             release/*.dmg.blockmap
           if-no-files-found: error
 
+  mac-intel-login:
+    # Mac Intel: a fatia x86_64 precisa de assinatura para o macOS aceitar o
+    # app como item de login (bug da 0.3.1 no MacBook Intel).
+    needs: mac
+    runs-on: macos-15-intel
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install playwright-core (only for the check)
+        run: |
+          mkdir -p "$RUNNER_TEMP/pw" && cd "$RUNNER_TEMP/pw"
+          npm init -y >/dev/null
+          npm i --no-audit --no-fund playwright-core@1.49.1
+      - uses: actions/download-artifact@v4
+        with:
+          name: mac
+          path: dmg
+      - name: Login item with this build (x86_64)
+        env:
+          NODE_PATH: ${{ runner.temp }}/pw/node_modules
+        run: |
+          uname -m
+          hdiutil attach -nobrowse -readonly -mountpoint /tmp/iwp dmg/*.dmg
+          ditto /tmp/iwp/iWallPeek.app "$RUNNER_TEMP/new/iWallPeek.app"
+          hdiutil detach /tmp/iwp
+          codesign -dv --arch x86_64 "$RUNNER_TEMP/new/iWallPeek.app"
+          codesign --verify --deep --strict "$RUNNER_TEMP/new/iWallPeek.app"
+          node test/mac-login-check.js "$RUNNER_TEMP/new/iWallPeek.app/Contents/MacOS/iWallPeek"
+      - name: Compare with published 0.3.1 (informative)
+        continue-on-error: true
+        env:
+          NODE_PATH: ${{ runner.temp }}/pw/node_modules
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download v0.3.1 --repo "$GITHUB_REPOSITORY" -p 'iWallPeek-0.3.1-universal.dmg' -D old
+          hdiutil attach -nobrowse -readonly -mountpoint /tmp/iwp-old old/*.dmg
+          ditto /tmp/iwp-old/iWallPeek.app "$RUNNER_TEMP/old/iWallPeek.app"
+          hdiutil detach /tmp/iwp-old
+          codesign -dv --arch x86_64 "$RUNNER_TEMP/old/iWallPeek.app" || true
+          node test/mac-login-check.js "$RUNNER_TEMP/old/iWallPeek.app/Contents/MacOS/iWallPeek" --expect-fail
+
   windows:
     runs-on: windows-latest
     steps:
@@ -113,7 +156,7 @@ jobs:
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [mac, windows, linux]
+    needs: [mac, mac-intel-login, windows, linux]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
