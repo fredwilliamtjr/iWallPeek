@@ -61,7 +61,7 @@ function boot() {
   const userData = app.getPath('userData');
   prefs = new Prefs(path.join(userData, 'preferences.json'));
   platform = createPlatform({ userData });
-  launchAtLogin = createLaunchAtLogin(app);
+  launchAtLogin = createLaunchAtLogin(app, shell);
   model = new WallModel({
     prefs,
     platform,
@@ -159,6 +159,8 @@ function showWindow() {
     event.preventDefault();
     mainWindow.hide();
   });
+  // Ao voltar dos Ajustes do Sistema (ex.: autorizar o item de login), relê o estado.
+  mainWindow.on('focus', () => broadcast());
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
@@ -249,7 +251,8 @@ const handlers = {
   'spaces:reapply': () => model.applyCurrentToSpaces(),
   'login:set': (enabled) => {
     try {
-      launchAtLogin.set(Boolean(enabled));
+      const problem = launchAtLogin.set(Boolean(enabled));
+      if (problem) model.status = `Início com o ${systemName()}: ${problem}`;
     } catch (error) {
       model.status = `Início com o ${systemName()}: ${error.message}`;
     }

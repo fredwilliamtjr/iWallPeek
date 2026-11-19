@@ -42,11 +42,54 @@ function desktopExecQuote(value) {
   return `"${value.replace(/(["`$\\])/g, '\\$1').replace(/%/g, '%%')}"`;
 }
 
-function createLaunchAtLogin(app) {
-  if (process.platform !== 'linux') {
+const MAC_LOGIN_ITEMS_SETTINGS = 'x-apple.systempreferences:com.apple.LoginItems-Settings.extension';
+
+// Interpreta a resposta do macOS (SMAppService, via Electron) depois de pedir o
+// início automático. Devolve null quando deu certo; senão, a orientação ao
+// usuário e se a tela de Itens de Início deve ser aberta (como fazia o Swift
+// com SMAppService.openSystemSettingsLoginItems()).
+function macLoginOutcome(enabled, settings) {
+  const status = settings?.status || 'desconhecido';
+  if (!enabled) {
+    return settings?.openAtLogin
+      ? { message: `o macOS manteve o início automático ativo (status: ${status}). Desative em Ajustes do Sistema › Geral › Itens de Início e Extensões.`, openSettings: true }
+      : null;
+  }
+  if (settings?.openAtLogin) return null;
+  if (status === 'requires-approval') {
+    return {
+      message: 'o macOS pediu sua autorização. Ative o iWallPeek em Ajustes do Sistema › Geral › Itens de Início e Extensões (a tela foi aberta) e volte para esta janela.',
+      openSettings: true
+    };
+  }
+  return {
+    message: `o macOS não ativou o início automático (status: ${status}). Confira o iWallPeek em Ajustes do Sistema › Geral › Itens de Início e Extensões; se houver uma entrada antiga desligada, ative-a ou remova-a e tente de novo.`,
+    openSettings: true
+  };
+}
+
+function createLaunchAtLogin(app, shell) {
+  if (process.platform === 'darwin') {
     return {
       isEnabled: () => app.getLoginItemSettings().openAtLogin,
-      set: (enabled) => app.setLoginItemSettings({ openAtLogin: Boolean(enabled), openAsHidden: true })
+      // Devolve null (ok) ou a mensagem a mostrar na janela.
+      set(enabled) {
+        app.setLoginItemSettings({ openAtLogin: Boolean(enabled) });
+        const outcome = macLoginOutcome(Boolean(enabled), app.getLoginItemSettings());
+        if (outcome?.openSettings && shell) shell.openExternal(MAC_LOGIN_ITEMS_SETTINGS).catch(() => {});
+        return outcome?.message || null;
+      }
+    };
+  }
+  if (process.platform === 'win32') {
+    return {
+      isEnabled: () => app.getLoginItemSettings().openAtLogin,
+      set(enabled) {
+        app.setLoginItemSettings({ openAtLogin: Boolean(enabled) });
+        return Boolean(enabled) === Boolean(app.getLoginItemSettings().openAtLogin)
+          ? null
+          : 'o Windows não confirmou a alteração. Confira em Configurações › Aplicativos › Inicialização.';
+      }
     };
   }
   return {
@@ -82,4 +125,4 @@ function systemName() {
   return 'Linux';
 }
 
-module.exports = { createPlatform, createLaunchAtLogin, linuxAutostartFile, systemName };
+module.exports = { createPlatform, createLaunchAtLogin, macLoginOutcome, linuxAutostartFile, systemName };

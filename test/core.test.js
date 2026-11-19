@@ -359,3 +359,16 @@ test('Feeds reais (IWALLPEEK_LIVE_TEST=1)', { skip: process.env.IWALLPEEK_LIVE_T
     console.log(`Feed validado: ${source}, ${data.length} bytes, ${info.width}x${info.height}, host ${new URL(image.url).hostname}`);
   }
 });
+
+test('macOS: início automático informa o status e abre os Ajustes quando preciso', () => {
+  const { macLoginOutcome } = require('../src/platform');
+  assert.equal(macLoginOutcome(true, { status: 'enabled', openAtLogin: true }), null);
+  assert.equal(macLoginOutcome(false, { status: 'not-registered', openAtLogin: false }), null);
+  const approval = macLoginOutcome(true, { status: 'requires-approval', openAtLogin: false });
+  assert.equal(approval.openSettings, true);
+  assert.match(approval.message, /autorização/);
+  const other = macLoginOutcome(true, { status: 'not-found', openAtLogin: false });
+  assert.match(other.message, /status: not-found/);
+  assert.equal(other.openSettings, true);
+  assert.match(macLoginOutcome(false, { status: 'enabled', openAtLogin: true }).message, /manteve/);
+});

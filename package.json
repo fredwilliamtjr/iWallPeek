@@ -1,6 +1,6 @@
 {
   "name": "iwallpeek",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Imagens diárias do Bing e do Windows Spotlight como plano de fundo no macOS, Windows e Linux.",
   "main": "src/main.js",
   "author": "Fred William",
